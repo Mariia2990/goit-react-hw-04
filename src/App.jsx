@@ -1,8 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import SearchBar from './components/SearchBar/SearchBar'
 import ImageGallery from './components/ImageGallery/ImageGallery'
 import ErrorMessage from './components/ErrorMessage/ErrorMessage'
-// import ImageModal from './components/ImageModal/ImageModal'
+import ImageModal from './components/ImageModal/ImageModal'
 import LoadMoreBtn from './components/LoadMoreBtn/LoadMoreBtn'
 import Loader from './components/Loader/Loader'
 import { fetchImages } from './components/api';
@@ -16,6 +16,8 @@ const App = () => {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
 
   useEffect(() => {
     if (!query) return;
@@ -43,6 +45,16 @@ const App = () => {
     getImages();
   }, [query, page]);
 
+   const uniqueImages = useMemo(() => {
+    const seen = new Set();
+    return images.filter((image) => {
+      const duplicate = seen.has(image.id);
+      seen.add(image.id);
+      return !duplicate;
+    });
+  }, [images]);
+
+
   const handleSearchSubmit = (newQuery) => {
     setQuery(newQuery);
     setPage(1);
@@ -55,22 +67,44 @@ const App = () => {
     setPage((prevPage) => prevPage + 1);
   };
 
+  const handleImageClick = (image) => {
+    setSelectedImage(image);
+    setIsModalOpen(true);
+  };
 
- return (
+  const closeModal = () => {
+    setSelectedImage(null);
+    setIsModalOpen(false);
+}
+
+return (
     <>
       <Toaster position="top-right" reverseOrder={false} />
       <SearchBar onSubmit={handleSearchSubmit} />
       
-      {loading && <Loader/>}
-      
+      {loading && <Loader />}
+
       {error ? (
         <ErrorMessage message={error} />
       ) : (
-        <ImageGallery images={images} />
+        <>
+          <ImageGallery images={images} onImageClick={handleImageClick} /> 
+          {images.length > 0 && page < totalPages && !loading && (
+            <LoadMoreBtn onClick={handleLoadMore} />
+          )}
+        </>
       )}
-       {images.length > 0 && !loading && <LoadMoreBtn onClick={handleLoadMore} />}
+
+        {selectedImage && (
+        <ImageModal
+          isOpen={isModalOpen}
+          onRequestClose={closeModal}
+          largeImageURL={selectedImage.urls.regular} 
+          alt={selectedImage.alt_description}
+        />
+      )}
     </>
   );
 };
 
-export default App
+export default App;
