@@ -6,14 +6,15 @@ ul{
 display: flex;
 flex-wrap: wrap;
 gap: 16px;
+cursor:zoom-in;
 }
 
 .galleryItem {
-    width: 200px;
-    height: 150px;
+    width: 300px;
+    height: 250px;
     overflow: hidden;
     flex-basis: calc((100% - 48px) / 3);
-transition: transform 250ms ease-in-out;
+    transition: transform 250ms ease-in-out;
 }
 
 .galleryItem:hover {

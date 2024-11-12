@@ -18,7 +18,7 @@ export default function SearchBar({onSubmit}) {
         <header className={css.header}>
             <Formik initialValues={initialValues} onSubmit={handleSubmit}>
                 <Form className={css.form}>
-                    <IoIosSearch className={css.iconSearch} />
+                    <button className={css.buttonSearch} type="submit"><IoIosSearch className={css.iconSearch} /></button>
                     <Field
                         name="query" 
                         className={css.searchInput}
@@ -27,7 +27,6 @@ export default function SearchBar({onSubmit}) {
                         autoFocus
                         placeholder="Search images and photos"
                     />
-                    <button className={css.buttonSearch} type="submit">Search</button>
                 </Form>
             </Formik>
         </header>
