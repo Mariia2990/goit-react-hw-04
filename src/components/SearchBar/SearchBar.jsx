@@ -1,33 +1,35 @@
 import css from './SearchBar.module.css'
-import { useState } from 'react';
 import { IoIosSearch } from "react-icons/io";
+import { Field, Form, Formik } from 'formik'
+import toast from 'react-hot-toast';
 
 export default function SearchBar({onSubmit}) {
-    const [searchQuery, setSearchQuery ]= useState('');
 
-    const handleChangeInput = event => {
-        setSearchQuery(event.target.value);
-    };
-    const handleSubmit = (event) => {
-        event.preventDefault();
-        onSubmit(searchQuery);
-        setSearchQuery('');
+    const initialValues = { query: '' };
+    const handleSubmit = (values, { resetForm }) => {
+        if (values.query.trim() === '') {
+            return toast.error("Please fill in the field");
+        }
+        onSubmit(values.query);
+        resetForm(); 
     };
 
     return (
         <header className={css.header}>
-            <form className={css.form} onSubmit={handleSubmit}>
-                <IoIosSearch className={css.iconSearch} />
-                <input className={css.searchInput}
-                    type="text"
-                    onChange= {handleChangeInput}
-                    autoComplete="off"
-                    autoFocus
-                    value={searchQuery}
-                    placeholder="Search images and photos" 
-                />
-                <button className={css.buttonSearch} type="submit">Search</button>
-            </form>
+            <Formik initialValues={initialValues} onSubmit={handleSubmit}>
+                <Form className={css.form}>
+                    <IoIosSearch className={css.iconSearch} />
+                    <Field
+                        name="query" 
+                        className={css.searchInput}
+                        type="text"
+                        autoComplete="off"
+                        autoFocus
+                        placeholder="Search images and photos"
+                    />
+                    <button className={css.buttonSearch} type="submit">Search</button>
+                </Form>
+            </Formik>
         </header>
 
     )

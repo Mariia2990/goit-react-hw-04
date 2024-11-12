@@ -1,66 +1,76 @@
 import { useState, useEffect } from 'react'
 import SearchBar from './components/SearchBar/SearchBar'
 import ImageGallery from './components/ImageGallery/ImageGallery'
-// import Loader from './components/Loader/Loader'
-// import ErrorMessage from './components/ErrorMessage/ErrorMessage'
+import ErrorMessage from './components/ErrorMessage/ErrorMessage'
 // import ImageModal from './components/ImageModal/ImageModal'
-import axios from "axios";
+import LoadMoreBtn from './components/LoadMoreBtn/LoadMoreBtn'
 import Loader from './components/Loader/Loader'
-import toast, { Toaster } from 'react-hot-toast';
+import { fetchImages } from './components/api';
 import './App.css'
+import toast, {Toaster} from 'react-hot-toast';
 
 const App = () => {
   const [images, setImages] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
-
-  const fetchImages = async (searchQuery) => {
-    try {
-      setLoading(true);
-      setError(false);
-      const response = await axios.get("https://api.unsplash.com/search/photos", {
-        params: { query: searchQuery, per_page: 12 },
-        headers: {
-          Authorization: `Client-ID N8NiyfrWfcDMb9Uv_jaw3yF1BcGJvl6XVHTrK6LTBuo`,
-        },
-      });
-      setImages(response.data.results);
-      console.log(response.data.results);
-    } catch (error) {
-      setError(true);
-      toast.error("Something went wrong. Please try again later.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
 
   useEffect(() => {
-    if (query) {
-      fetchImages(query);
-    }
-  }, [query]);
+    if (!query) return;
+
+    const getImages = async () => {
+      try {
+        setLoading(true);
+        const { images: newImages, totalPages } = await fetchImages(query, page);
+        
+        if (page === 0) {
+          setImages(newImages);
+        } else {
+          setImages((prevImages) => [...prevImages, ...newImages]);
+        }
+        
+        setTotalPages(totalPages);
+      } catch (error) {
+        setError("Something went wrong. Please try again later.");
+        toast.error("Something went wrong. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    getImages();
+  }, [query, page]);
 
   const handleSearchSubmit = (newQuery) => {
     setQuery(newQuery);
+    setPage(1);
+    setImages([]);
+    setTotalPages(0);
+    setError(null);
   };
 
-    return (
-      <>
-        <SearchBar onSubmit={handleSearchSubmit} />
-        <Toaster
-          position="top-right"
-          reverseOrder={false}
-/>
-        {loading && <Loader/>}
-        {error && <p className="error">Something went wrong. Please try again later.</p>}
+   const handleLoadMore = () => {
+    setPage((prevPage) => prevPage + 1);
+  };
 
-        <ImageGallery images={images}/>
-        {/* <Loader />
-      <ErrorMessage />
-      <ImageModal/> */}
-      </>
-    )
-  }
+
+ return (
+    <>
+      <Toaster position="top-right" reverseOrder={false} />
+      <SearchBar onSubmit={handleSearchSubmit} />
+      
+      {loading && <Loader/>}
+      
+      {error ? (
+        <ErrorMessage message={error} />
+      ) : (
+        <ImageGallery images={images} />
+      )}
+       {images.length > 0 && !loading && <LoadMoreBtn onClick={handleLoadMore} />}
+    </>
+  );
+};
 
 export default App
