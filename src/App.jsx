@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import SearchBar from './components/SearchBar/SearchBar'
 import ImageGallery from './components/ImageGallery/ImageGallery'
 import ErrorMessage from './components/ErrorMessage/ErrorMessage'
@@ -14,10 +14,11 @@ const App = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [query, setQuery] = useState('');
-  const [page, setPage] = useState(0);
+  const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const lastImageRef = useRef(null);
 
   useEffect(() => {
     if (!query) return;
@@ -26,14 +27,21 @@ const App = () => {
       try {
         setLoading(true);
         const { images: newImages, totalPages } = await fetchImages(query, page);
-        
-        if (page === 0) {
+
+        if (newImages.length === 0) {
+          toast.error("No results found for your search.");
+        }
+
+        if (page === 1) {
           setImages(newImages);
         } else {
           setImages((prevImages) => [...prevImages, ...newImages]);
         }
         
         setTotalPages(totalPages);
+        if (page >= totalPages && newImages.length > 0) {
+          toast.success('You have reached the end of the results.');
+        }
       } catch (error) {
         setError("Something went wrong. Please try again later.");
         toast.error("Something went wrong. Please try again later.");
@@ -45,26 +53,28 @@ const App = () => {
     getImages();
   }, [query, page]);
 
-   const uniqueImages = useMemo(() => {
-    const seen = new Set();
-    return images.filter((image) => {
-      const duplicate = seen.has(image.id);
-      seen.add(image.id);
-      return !duplicate;
-    });
-  }, [images]);
+ const uniqueImages = useMemo(() => {
+  const seen = {}; 
+  return images.filter((image) => {
+    if (seen[image.id]) {
+      return false; 
+    }
+    seen[image.id] = true; 
+    return true;
+  });
+}, [images]);
 
 
   const handleSearchSubmit = (newQuery) => {
     setQuery(newQuery);
     setPage(1);
     setImages([]);
-    setTotalPages(0);
+    setTotalPages(1);
     setError(null);
   };
 
-   const handleLoadMore = () => {
-    setPage((prevPage) => prevPage + 1);
+  const handleLoadMore = () => {
+     setPage((prevPage) => prevPage + 1);
   };
 
   const handleImageClick = (image) => {
@@ -75,7 +85,14 @@ const App = () => {
   const closeModal = () => {
     setSelectedImage(null);
     setIsModalOpen(false);
-}
+  }
+  
+
+useEffect(() => {
+  if (lastImageRef.current) {
+    lastImageRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
+  }
+}, [images]);
 
 return (
     <>
@@ -88,14 +105,14 @@ return (
         <ErrorMessage message={error} />
       ) : (
         <>
-          <ImageGallery images={images} onImageClick={handleImageClick} /> 
-          {images.length > 0 && page < totalPages && !loading && (
+            <ImageGallery images={uniqueImages} onImageClick={handleImageClick} lastImageRef={lastImageRef} />
+          {uniqueImages.length > 0 && page < totalPages && !loading && (
             <LoadMoreBtn onClick={handleLoadMore} />
           )}
         </>
       )}
 
-        {selectedImage && (
+      {selectedImage && (
         <ImageModal
           isOpen={isModalOpen}
           onRequestClose={closeModal}
@@ -106,5 +123,6 @@ return (
     </>
   );
 };
+
 
 export default App;
